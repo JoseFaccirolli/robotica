@@ -14,12 +14,22 @@ for (let l = 0; l < 4; l++) {
 }
 console.log(sudoku)
 */
+
+/*
 let sudoku = [
     [0, 0, 0, 1],
     [2, 1, 3, 4],
     [0, 0, 0, 0],
     [0, 0, 4, 2],
 ]
+*/
+let sudoku = [
+  [0,0,0,0],
+  [3,0,0,1],
+  [0,0,0,0],
+  [0,4,0,2]
+]
+
 console.log(sudoku)
 
 function verificarLinha(sudoku, linha, numero) {
@@ -72,18 +82,21 @@ function sudokuSolver(sudoku) {
                         !verificarQuadrado(sudoku, l, c, escolha)
                     ) {
                         sudoku[l][c] = escolha
-                        sudokuSolver(sudoku)
+                        if (sudokuSolver(sudoku)) { // corta o loop e refaz
+                            return true // retorna true caso sudoku acabou
+                        }
+                        sudoku[l][c] = 0 // refaz caso sudoku a partir daqui caso nao foi resolvido
                     }
                 }
+                return false
             }
         }
     }
-    return sudoku
+    return true
 }
 
-console.log(sudokuSolver(sudoku))
-
-//verificarPossibilidade -> usa as 3 funçõoes (verLinha, verColuna e VerBloco) para ver a possibilidade do numero.
+sudokuSolver(sudoku)
+console.log(sudoku)
 
 /*
 let sudoku = [
