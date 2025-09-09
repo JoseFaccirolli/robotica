@@ -48,7 +48,7 @@ function verificarQuadrado(sudoku, linha, coluna, numero) {
     linha = Math.floor(linha / 2) * 2
     coluna = Math.floor(coluna / 2) * 2
     bloco.push(sudoku[linha][coluna], sudoku[linha][coluna+1], sudoku[linha+1][coluna], sudoku[linha+1][coluna+1], )
-    console.log("Bloco: ", bloco)
+    //console.log("Bloco: ", bloco)
 
     // Percorre o bloco verificando se "numero" existe
     for (let i = 0; i < 4; i++){
@@ -58,6 +58,31 @@ function verificarQuadrado(sudoku, linha, coluna, numero) {
     }
     return false
 }
+
+
+//Como será feito a escolha?
+function sudokuSolver(sudoku) {
+    for (let l = 0; l < 4; l++) {
+        for (let c = 0; c < 4; c++) {
+            if (sudoku[l][c] === 0) {
+                for (let escolha = 1; escolha < 5; escolha++) {
+                    if(
+                        !verificarLinha(sudoku, l, escolha) && 
+                        !verificarColuna(sudoku, c, escolha) && 
+                        !verificarQuadrado(sudoku, l, c, escolha)
+                    ) {
+                        sudoku[l][c] = escolha
+                    } else {
+                        // nao trocar / guardar.
+                    }
+                }
+            }
+        }
+    }
+    return sudoku
+}
+
+console.log(sudokuSolver(sudoku))
 
 //verificarPossibilidade -> usa as 3 funçõoes (verLinha, verColuna e VerBloco) para ver a possibilidade do numero.
 
