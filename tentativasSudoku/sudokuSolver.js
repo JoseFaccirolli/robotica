@@ -42,8 +42,8 @@ function verificarColuna(sudoku, coluna, numero) {
     return false
 }
 
-let bloco = []
 function verificarQuadrado(sudoku, linha, coluna, numero) {
+    let bloco = []
     // Encontra o bloco e envia para a array bloco
     linha = Math.floor(linha / 2) * 2
     coluna = Math.floor(coluna / 2) * 2
@@ -60,7 +60,7 @@ function verificarQuadrado(sudoku, linha, coluna, numero) {
 }
 
 
-//Como será feito a escolha?
+// Backtracking?
 function sudokuSolver(sudoku) {
     for (let l = 0; l < 4; l++) {
         for (let c = 0; c < 4; c++) {
@@ -72,8 +72,7 @@ function sudokuSolver(sudoku) {
                         !verificarQuadrado(sudoku, l, c, escolha)
                     ) {
                         sudoku[l][c] = escolha
-                    } else {
-                        // nao trocar / guardar.
+                        sudokuSolver(sudoku)
                     }
                 }
             }
