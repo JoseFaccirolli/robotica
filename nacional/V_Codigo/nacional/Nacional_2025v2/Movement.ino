@@ -1,4 +1,4 @@
-// Atualizado V3
+// Atualizado
 // Pressionado = LOW (pinos com INPUT_PULLUP)
 static inline bool readSwitchDebounced(uint8_t pin) {
   uint8_t hits = 0;
@@ -15,11 +15,12 @@ bool moveSwitch() {
   if(!noSwitch){
   if (leftPressed && !rightPressed) {
     Serial.println("Choque esquerdo");
-    
+    addswitch++;
+
     stopTank();
     //gyro.resetCoordinatesValues(position);
     moveTank(-100, -100, false);
-    vTaskDelay(pdMS_TO_TICKS(50)); // 50
+    vTaskDelay(pdMS_TO_TICKS(50));
     //stopTank();
     axisCurve(10);
     vTaskDelay(pdMS_TO_TICKS(10));
@@ -31,11 +32,12 @@ bool moveSwitch() {
 
   } else if (rightPressed && !leftPressed) {
     Serial.println("Choque direito");
-    
+    addswitch++;
+
     stopTank();
     //gyro.resetCoordinatesValues(position);
     moveTank(-100, -100, false);
-    vTaskDelay(pdMS_TO_TICKS(50)); // 50
+    vTaskDelay(pdMS_TO_TICKS(50));
     //stopTank();
     axisCurve(-10);
     vTaskDelay(pdMS_TO_TICKS(10));
@@ -64,7 +66,6 @@ void moveTile()
         robot.blueNodes.append(robot.pointToIndex(ponto_atual));
         stopTank();
         blink_led(5, 3, true);
-        vTaskDelay(pdMS_TO_TICKS(1000));
       }
       if (getColor() == "grey"){
         blink_led(2, 4, false);
@@ -148,13 +149,26 @@ bool walkByEncoder(long cm, bool flag) {
   lastencoder = Encoder(); // ZERA no começo
   int16_t off_angle = flag ? gyro.coordinatesValues[gyro.getAngleToNearmostCoordinate(1)] : gyro.getYawAngle();
   uint8_t speed = 255; // 255
-  while (Encoder() - lastencoder < cm) {
+  while (Encoder() - lastencoder < (cm + addcm + addswitch)) {
+int incAngle = -gyro.getInclinationAngle();
+
+    if (abs(incAngle) > 10) {
+      cont++;
+      if (cont >= 3) {
+        int delta = (incAngle > 0) ? 1 : -1;
+        addcm = constrain(addcm + delta, -5, 5);  // limita entre -5 e +5 cm
+        cont = 0;
+      }
+    } else {
+      addcm = 0;
+      cont = 0;
+    }
 
     if (moveSwitch()) {moveSwitch();
     }else{
    if (camera_Identify()) continue;
     int16_t target_angle = gyro.getYawAngle(off_angle);
-    pdControl(-target_angle, speed, 28.0, 0, MAX_PWM);
+    pdControl(-target_angle, speed, 30.0, 0, MAX_PWM);
     if (getColor() == "black") return true;
     if (!no) break;
     
@@ -162,10 +176,11 @@ bool walkByEncoder(long cm, bool flag) {
     }
   }
   stopTank();
-
+  addswitch = 0;
   lastencoder = Encoder(); //zera encoder
   return false;
 }
+
 
 uint8_t path_decision() {
   closerToWall = false;
@@ -283,8 +298,7 @@ void pdControlCurve(int16_t error, float userKp, float userKd, uint8_t correctio
 
 void alignTile() {
   camera_Identify();
-  const uint8_t correctionLimit = 160;   // 160
-  const float   local_kp = 25.0f; // 25
+
   // frente(7) e trás(3)
   const int idx_front_back[2] = {7, 3};
   int v_front_back[2] = { read_sensors(idx_front_back[0]), read_sensors(idx_front_back[1]) };
@@ -329,8 +343,7 @@ void alignTile() {
 
 int getNextTileAngle() {
   int angle;
-  uint16_t middle_wall_value = 150; // 100
-  uint16_t d1 = 107; // 86;
+  
   int vector[2] = { 1, 5 };  // esquerda, direita
   for (uint8_t i = 0; i < 2; i++) vector[i] = read_sensors(vector[i]);
   //printVector(vector, 2);
@@ -414,11 +427,10 @@ void update_position(bool direction) {  // 1 right, 0 left
 
 void return2init() {
   List teste = robot.getInstructions();
-  blink_led(5, 4, true);
+  blink_led(5, 4, true);  // pisca para indicar que vai iniciar o retorno
   for (uint8_t i = 0; i < teste.len(); i++) {
     if (getColor() == "blue") {
-      // blink_led(5, 3, true);
-      vTaskDelay(pdMS_TO_TICKS(5000));
+      blink_led(5, 3, true);
     }
     bool turnFlag = false;
     switch (teste.getByIndex(i)) {
@@ -448,11 +460,11 @@ void return2init() {
 
 void testeServo(){
   servo.write(KIT_CENTER);
-  delay(5000);
-  servo.write(KIT_LEFT);
   delay(1000);
-  servo.write(KIT_CENTER);
+  servo.write(KIT_LEFT);
   delay(5000);
+  servo.write(KIT_CENTER);
+  delay(1000);
   servo.write(KIT_RIGHT);
   delay(1000);
 }

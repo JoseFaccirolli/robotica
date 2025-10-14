@@ -3,7 +3,7 @@
 #include <Adafruit_BNO055.h> //
 //#include "Adafruit_VL53L0X.h" //
 
-#include <BluetoothSerial.h> //
+//#include <BluetoothSerial.h> //
 
 #include <MazeFranRobots.h> //
 #include <Adafruit_NeoPixel.h> //
@@ -42,12 +42,12 @@
 #define TURN_SPEED_DEFAULT 230
 #define SERVO_PIN 5
 
-#define SWITCHRIGHT 18
+#define SWITCHRIGHT 13
 #define SWITCHLEFT 2
 
 #define KIT_CENTER 85
-#define KIT_LEFT 54
-#define KIT_RIGHT 103
+#define KIT_LEFT 58
+#define KIT_RIGHT 102
 
 #define NEAR_WALL 180
 
@@ -59,7 +59,7 @@
 #define SENSOR_c9 35
 
 #define N_LEDS 11
-#define BUTTON 4 // 12
+#define BUTTON 4 //| 12
 #define TCAADDR 0x70
 #define BNO055_ADDR 0x28
 #define GY_ADDR 0x29
@@ -73,6 +73,12 @@
 
 #define noSwitch false // true sem  switch - false com switch 
 
+//-------------------Variaveis getNextTileAngle------------------//
+constexpr uint16_t middle_wall_value = 150; // 100
+constexpr uint16_t d1 = 107; // 86;
+//------------------Variaveis alignTile---------------------//
+constexpr uint8_t correctionLimit = 160;   // 160
+constexpr float   local_kp = 25.0f; // 25
 // --------------------- BNO Class -------------------- // 
 class BNO055 {
 private:
@@ -150,21 +156,22 @@ public:
 BNO055 gyro;
 
 // ----------- Encoder and Motor -------------- 
-const uint8_t motor_length = 8;
-const uint8_t motor_vector[motor_length] = { FORWARD_0, BACK_0, FORWARD_1, BACK_1, FORWARD_2, BACK_2, FORWARD_3, BACK_3 };
+constexpr uint8_t motor_length = 8;
+constexpr uint8_t motor_vector[motor_length] = { FORWARD_0, BACK_0, FORWARD_1, BACK_1, FORWARD_2, BACK_2, FORWARD_3, BACK_3 };
 
 float lastencoder = 0;
 
 volatile uint32_t pulseCount = 0;
 portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
+uint8_t cont = 0;
+uint8_t addcm = 0;
+uint8_t addswitch = 0;
 
 void IRAM_ATTR encoderISR() {
   pulseCount++;
 }
 
 float Encoder() {
-  //int incAngle = -gyro.getInclinationAngle();
- // bool cmValue = incAngle > 10 ? true : false;
   uint32_t cnt;
   portENTER_CRITICAL(&mux);
   cnt = pulseCount;
@@ -194,19 +201,20 @@ TaskHandle_t TaskOnCore1;  // Variável para armazenar o identificador da tarefa
 
 // ---------------- Reflect plate ------------- //
 
-const uint8_t sensor_length = 4;
-const uint8_t sensor_vector[sensor_length] = { SENSOR_c9, SENSOR_ldrR, SENSOR_ldrG, SENSOR_ldrB };
-int16_t sensor_values[sensor_length];
+constexpr uint8_t sensor_length = 4;
+ uint8_t sensor_vector[sensor_length] = { SENSOR_c9, SENSOR_ldrR, SENSOR_ldrG, SENSOR_ldrB };
+ int16_t sensor_values[sensor_length];
 
 // ---------------- GY Sensors ---------------- //
-const uint8_t N_SENSORS = 8;
+constexpr uint8_t N_SENSORS = 8;
 VL53L0X sensors[N_SENSORS];
-//                                        0   1   2   3   4   5   6    7
-int dist_sensors_offsets[8] = {20, 35, 50, 58, 62, 42, 115, 72}; // positivo = aumenta; negativo = subtrai.
-// constexpr int dist_sensors_offsets[8] = {28, 30,  47,  57,  30, 38,  110,  70};
-uint16_t sensors_target_value[] = {36, 355, 660, 950}; // alignTile 1, 2, 3, 4
 
-BluetoothSerial SerialBT;
+constexpr int dist_sensors_offsets[8] = {33, 35,  48,  62,  30, 38,  110,  72}; // positivo = aumenta; negativo = subtrai.
+//int dist_sensors_offsets[8] = {30, 52,  37,  47,  62, 122,  50,  43};
+constexpr uint16_t sensors_target_value[] = {35, 355, 660, 950}; // nextAlignTile 1, 2, 3, 4
+// constexpr uint16_t sensors_target_value[] = {30, 330, 630, 930};
+
+//BluetoothSerial SerialBT;
 
 bool no = 1;
 uint8_t tile_count = 0;
@@ -238,7 +246,7 @@ void calibrate_dist_sensors();
 void init_gy();
 void moveTile();
 uint8_t path_decision();
-void axisCurve(int8_t, float userKp = 7.0, uint8_t correctionLimit = 255);
+void axisCurve(int8_t, float userKp = 9.0, uint8_t correctionLimit = 255);
 void printEncoder();
 void printCam();
 void printSensorsPure();
@@ -283,7 +291,7 @@ void setup() {
   ledcAttachPin(RIGHT_MOTOR_2_3, BACK_3);
   Wire.begin(SDA_PIN, SCL_PIN);
   Wire.setClock(800000); // 400.000
-  SerialBT.begin("Fran Robots");
+  //SerialBT.begin("Fran Robots");
   stopTank();
   pinMode(ENCODER_PIN, INPUT_PULLUP);
   pinMode(SWITCHLEFT, INPUT_PULLUP);
@@ -333,7 +341,7 @@ VictimData buf;
 
 void taskOnCore0(void *pvParameters) {
   unsigned long timeToReturn = millis();
-  unsigned long timeLimit = 5 * 60 * 1000;  // 8 minutos
+  unsigned long timeLimit = 5 * 60 * 1000;  // 5 minutos
   for (;;) {
     
     if (!bnoFlag) {
@@ -342,7 +350,7 @@ void taskOnCore0(void *pvParameters) {
       //vectorReorder(gyro.coordinatesValues, position);
       bnoFlag = 1;
       no = 1;
-      //alignTile();
+      //alignTile(); // Align inicial (de saída)
     }
     if (no) {
       position = gyro.getAngleToNearmostCoordinate(1);
@@ -356,21 +364,20 @@ void taskOnCore0(void *pvParameters) {
         //getNextTileAngle();
         //walkByEncoder(30, true);
         //delay(10000);
-        // alignTile();
+        //alignTile();
         // printReflectance();
         //SerialBT.println(getColor());
         //moveTank(100, 100, true);
-        // blink_led(5, 3, true);
+        //blink_led(5, 3, true);
         //printCam();
         //delay(10000);
         // testeServo();
-        //printGyro();
+        // printGyro();
         // Encoder();
         // printEncoder();
         // printSensorsPure();
         // printSensors(); // Gy
         //printVector();
-        // printRefletanceResult();
       }
     }
     

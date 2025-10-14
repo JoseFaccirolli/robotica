@@ -83,7 +83,7 @@ void printEncoder() {
 void printGyro() {
   //Serial.printf(" Yaw Angle %d | Inclination Angle %d", gyro.getYawAngle(), gyro.getInclinationAngle());
   Serial.print(gyro.getYawAngle());
-  //Serial.println(gyro.getInclinationAngle());
+  Serial.println(-gyro.getInclinationAngle());
   Serial.println("  ");
 }  
 // Cameras 
@@ -97,10 +97,4 @@ void printCam() {
   }
   // Delay opcional se esta função estiver sendo chamada em loop
   vTaskDelay(pdMS_TO_TICKS(100));
-}
-
-void printRefletanceResult() {
-  Serial.print(getColor() == "black");
-  Serial.print(getColor() == "blue");
-  Serial.println(getColor() == "grey");
 }

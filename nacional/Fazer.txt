@@ -1,0 +1,6 @@
+Calibrar:
+- Gy, 8 e distancia (talvez max wall)
+- Calibrar cor na openmv
+- Enfiar a refletância no cu
+
+- Ultimo caso: treinar M.L. -> Edge Impulse.

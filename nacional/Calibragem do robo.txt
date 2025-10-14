@@ -1,0 +1,13 @@
+Fazer:
+- Testar Enconder OK
+- Motores (Parcialmente ok)
+  -> Funcionam para o lado certo
+  -> Motor com diferença de velocidade
+
+- Testar BeginLed
+- Calibrar servo
+- Calibrar Gy
+  -> Zerar
+  -> GetNextTile 4 tiles
+
+- Calibrar placa de refletância
